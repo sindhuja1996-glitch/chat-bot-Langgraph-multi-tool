@@ -12,6 +12,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.prebuilt import ToolNode,tools_condition
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_community.tools import DuckDuckGoSearchRun
+from langchain_openai import ChatOpenAI
 from langchain_core.tools import tool
 import requests
 import random
@@ -21,23 +22,18 @@ load_dotenv()
 api_key = os.getenv("GROQ_API_KEY")
 api_key_google = os.getenv("GOOGLE_API_KEY")
 tavily_api_key = os.getenv("TAVILY_API_KEY")
+API_KEY = os.getenv("API_KEY")
 # llm groq
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-pro",
-    temperature=0,
-    max_tokens=None,
-    timeout=None,
-    max_retries=2,
-    # other params...
-)
-#llm = ChatGroq(api_key=api_key, model="llama-3.1-8b-instant")
+llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash")
+#llm = ChatOpenAI()
+#llm = ChatGroq(api_key=api_key, model="openai/gpt-oss-20b")
 # sate intiallization
 class ChatState(TypedDict):
     messages:Annotated[list[BaseMessage],add_messages]
 
 # tools 
-search_tool = TavilySearchResults(api_key=tavily_api_key)
-search_dugduggo = DuckDuckGoSearchRun()
+search_tool = TavilySearchResults()
+#search_dugduggo = DuckDuckGoSearchRun()
 
 
 @tool
@@ -75,9 +71,25 @@ def get_stock_price(symbol: str) -> dict:
     """
     url = f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}&apikey=RKMBSQTELA2SCMS3"
     r = requests.get(url)
-    return r.json()        
+    return r.json()
 
-tools = [get_stock_price,calculator,search_tool]
+@tool
+def get_weather(city: str) -> str:
+    """Get current weather for a given city using OpenWeatherMap."""
+    BASE_URL = "https://api.openweathermap.org/data/2.5/weather"
+    params = {"q": city, "appid": API_KEY, "units": "metric"}
+    response = requests.get(BASE_URL, params=params)
+
+    if response.status_code == 200:
+        data = response.json()
+        temp = data["main"]["temp"]
+        description = data["weather"][0]["description"]
+        return f"The weather in {city} is {description}, {temp}°C."
+    else:
+        return f"Could not fetch weather for {city}."
+        
+
+tools = [search_tool,get_stock_price,calculator]
 llm_with_tools = llm.bind_tools(tools)
 
 def Chat_node(state:ChatState):

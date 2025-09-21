@@ -11,4 +11,5 @@ langgraph-checkpoint-sqlite
 langchain-community
 langchain-google-genai
 ddgs
+langchain-openai
 
