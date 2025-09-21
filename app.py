@@ -77,7 +77,7 @@ def get_stock_price(symbol: str) -> dict:
     r = requests.get(url)
     return r.json()        
 
-tools = [get_stock_price,calculator,search_dugduggo,search_tool]
+tools = [get_stock_price,calculator,search_tool]
 llm_with_tools = llm.bind_tools(tools)
 
 def Chat_node(state:ChatState):
