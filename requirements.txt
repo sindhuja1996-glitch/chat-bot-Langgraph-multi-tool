@@ -9,5 +9,6 @@ langchain-groq
 streamlit
 langgraph-checkpoint-sqlite
 langchain-community
+langchain-google-genai
 ddgs
 

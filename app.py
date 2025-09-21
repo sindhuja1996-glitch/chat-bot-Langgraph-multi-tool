@@ -8,7 +8,7 @@ import os
 from groq import Groq
 from langgraph.checkpoint.sqlite import SqliteSaver
 import sqlite3
-
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.prebuilt import ToolNode,tools_condition
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.tools import tool
@@ -18,9 +18,18 @@ import random
 #load env
 load_dotenv()
 api_key = os.getenv("GROQ_API_KEY")
+api_key_google = os.getenv("GOOGLE_API_KEY")
 tavily_api_key = os.getenv("TAVILY_API_KEY")
 # llm groq
-llm = ChatGroq(api_key=api_key, model="llama-3.3-70b-versatile")
+llm = ChatGoogleGenerativeAI(
+    model="gemini-2.5-flash",
+    temperature=0,
+    max_tokens=None,
+    timeout=None,
+    max_retries=2,
+    # other params...
+)
+#llm = ChatGroq(api_key=api_key, model="llama-3.1-8b-instant")
 # sate intiallization
 class ChatState(TypedDict):
     messages:Annotated[list[BaseMessage],add_messages]
