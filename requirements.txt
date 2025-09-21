@@ -1,0 +1,11 @@
+langchain
+langgraph
+python-dotenv
+groq
+duckduckgo-search
+google-genai
+typing
+langchain-groq
+streamlit
+langgraph-checkpoint-sqlite
+
