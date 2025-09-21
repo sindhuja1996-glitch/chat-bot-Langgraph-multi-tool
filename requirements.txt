@@ -8,4 +8,6 @@ typing
 langchain-groq
 streamlit
 langgraph-checkpoint-sqlite
+langchain-community
+ddgs
 
