@@ -11,6 +11,7 @@ import sqlite3
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.prebuilt import ToolNode,tools_condition
 from langchain_community.tools.tavily_search import TavilySearchResults
+from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_core.tools import tool
 import requests
 import random
@@ -22,7 +23,7 @@ api_key_google = os.getenv("GOOGLE_API_KEY")
 tavily_api_key = os.getenv("TAVILY_API_KEY")
 # llm groq
 llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
+    model="gemini-2.5-pro",
     temperature=0,
     max_tokens=None,
     timeout=None,
@@ -36,6 +37,8 @@ class ChatState(TypedDict):
 
 # tools 
 search_tool = TavilySearchResults(api_key=tavily_api_key)
+search_dugduggo = DuckDuckGoSearchRun()
+
 
 @tool
 def calculator(first_num: float, second_num: float, operation: str) -> dict:
@@ -74,7 +77,7 @@ def get_stock_price(symbol: str) -> dict:
     r = requests.get(url)
     return r.json()        
 
-tools = [search_tool, get_stock_price, calculator]
+tools = [get_stock_price,calculator,search_dugduggo,search_tool]
 llm_with_tools = llm.bind_tools(tools)
 
 def Chat_node(state:ChatState):
