@@ -12,4 +12,5 @@ langchain-community
 langchain-google-genai
 ddgs
 langchain-openai
+tavily-python
 
