@@ -69,7 +69,26 @@ for thread_id in st.session_state['chat_threads'][::-1]:
 # loading the conversation history
 for message in st.session_state['message_history']:
     with st.chat_message(message['role']):
-        st.text(message['content'])
+        content = message['content']
+        import re
+        img_url = None
+        if isinstance(content, str):
+            # Match markdown image link: ![alt](url)
+            match = re.search(r'!\[.*?\]\((https?://[^)]+)\)', content)
+            if match:
+                img_url = match.group(1)
+            else:
+                # Also match markdown link: [alt](url)
+                match = re.search(r'\[.*?\]\((https?://[^)]+)\)', content)
+                if match:
+                    img_url = match.group(1)
+        if img_url:
+            st.image(img_url)
+            st.text(content.replace(img_url, '').strip())
+        elif isinstance(content, str) and content.startswith('http') and any(content.lower().endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.webp']):
+            st.image(content)
+        else:
+            st.text(content)
 
 user_input = st.chat_input('Type here')
 

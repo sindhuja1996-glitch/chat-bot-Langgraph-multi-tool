@@ -24,10 +24,10 @@ api_key_google = os.getenv("GOOGLE_API_KEY")
 tavily_api_key = os.getenv("TAVILY_API_KEY")
 API_KEY = os.getenv("API_KEY")
 # llm groq
-# llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash")
+llm = ChatGoogleGenerativeAI(model="gemini-2.5-pro")
 #llm = ChatOpenAI()
-llm = ChatGroq(api_key=api_key, model="meta-llama/llama-4-scout-17b-16e-instruct")
-imagellm = ChatGoogleGenerativeAI(model="gemini-2.5-flash-image-preview")
+llm_backup = ChatGroq(api_key=api_key, model="meta-llama/llama-4-scout-17b-16e-instruct")
+imagellm = ChatGoogleGenerativeAI(model="gemini-1.5-flash-image-preview")
 # state initialization
 class ChatState(TypedDict):
     messages:Annotated[list[BaseMessage],add_messages]
@@ -62,30 +62,22 @@ def calculator(first_num: float, second_num: float, operation: str) -> dict:
         return {"error": str(e)}
 
 
-@tool
 
-def draw_image(description: str) -> str:
-    """Generate an image based on the provided description using DALL-E."""
-    dalle_url = "https://api.openai.com/v1/images/generations"
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {api_key_google}"
-    }
-    data = {
-        "model": "dall-e-3",
-        "prompt": description,
-        "n": 1,
-        "size": "1024x1024"
-    }
-    
-    response = requests.post(dalle_url, headers=headers, json=data)
-    
-    if response.status_code == 200:
-        image_url = response.json()['data'][0]['url']
-        print(f"Generated image URL: {image_url}")
-        return image_url
+# Tool using the image LLM for image generation
+@tool
+def generate_image_with_llm(description: str) -> str:
+    """Generate an image using the Gemini image model (imagellm) and return the image URL.if not able to generate then send you request to serach_tool and get the images url and print them in ui"""
+    response = imagellm.invoke(description)
+    print(f"Image generation response: {response}")
+    # The response should contain the image URL or a list of images
+    if hasattr(response, 'images') and response.images:
+        return response.images[0].url if hasattr(response.images[0], 'url') else str(response.images[0])
+    elif hasattr(response, 'url'):
+        return response.url
+    elif isinstance(response, str):
+        return response
     else:
-        return f"Error: {response.status_code}, {response.text}"
+        return "Error: Could not generate image."
 
 @tool
 def get_stock_price(symbol: str) -> dict:
@@ -99,7 +91,7 @@ def get_stock_price(symbol: str) -> dict:
 
 @tool
 def get_weather(city: str) -> str:
-    """Get current weather for a given city using OpenWeatherMap."""
+    """Get current weather for a given city and it surrounded area weather info also using OpenWeatherMap.if you are not able to find the info of the given cirty or araea route to serach_tool to get the info"""
     BASE_URL = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={API_KEY}&units=metric"
 
     response = requests.get(BASE_URL)
@@ -113,13 +105,20 @@ def get_weather(city: str) -> str:
         return f"Could not fetch weather for {city}."
         
 
-tools = [search_tool,get_stock_price,calculator,get_weather,draw_image]
+tools = [search_tool,get_stock_price,calculator,get_weather,generate_image_with_llm]
 llm_with_tools = llm.bind_tools(tools)
 
 def Chat_node(state:ChatState):
     """As chat node receives the messages from the state and pass it to llm with respective tools"""
     messages = state["messages"]
-    response = llm_with_tools.invoke(messages)
+    try:
+        response = llm_with_tools.invoke(messages)
+        print(f"ChatGroq response: {response}")
+    except Exception as e:
+        # If ChatGroq fails, fallback to llm_backup
+        print(f"ChatGroq failed: {e}. Using backup model.")
+        response = llm_backup.bind_tools(tools).invoke(messages)
+        print(f"Backup model response: {response}")
     return {"messages": [response]}
 
 tool_node = ToolNode(tools)
